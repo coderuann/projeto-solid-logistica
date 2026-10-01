@@ -2,7 +2,6 @@
 
 Trabalho da matéria de Padrões de Projetos. A ideia foi montar, em Java puro, um pequeno sistema de logística que calcula o frete de encomendas, registra os pedidos e avisa o cliente quando a encomenda sai para entrega, seguindo os cinco princípios do SOLID.
 
-**Aluno:** Ruann Gomes Walter — RGM 38125625
 
 ---
 
