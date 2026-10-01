@@ -1,29 +1,25 @@
-# Motor de Logística e Fretes — Princípios SOLID com Java
+# Motor de Logística e Fretes — SOLID com Java
 
-Aplicação desenvolvida em Java, estrutura Maven, que demonstra a aplicação dos 5 princípios SOLID através de um domínio real: cálculo de fretes, registro de encomendas e notificação de entrega.
+Trabalho da matéria de Padrões de Projetos. A ideia foi montar, em Java puro, um pequeno sistema de logística que calcula o frete de encomendas, registra os pedidos e avisa o cliente quando a encomenda sai para entrega, seguindo os cinco princípios do SOLID.
 
-Ruann Gomes Walter - RGM: 38125625
-M
+**Aluno:** Ruann Gomes Walter — RGM 38125625
 
 ---
 
-## 
+## Como rodar
 
-**Compilar:**
+O projeto usa Maven e Java 17 ou superior.
+
 ```
 mvn clean compile
-```
-
-**Executar:**
-```
 mvn exec:java -Dexec.mainClass="logistica.Main"
 ```
 
-**Saída esperada:** dois cenários de frete com canais de notificação distintos.
+Ao executar, o `Main` roda dois cenários seguidos, cada um com um tipo de frete e um canal de notificação diferentes.
 
 ---
 
-## Estrutura do Projeto
+## Como o projeto está organizado
 
 ```
 src/main/java/logistica/
@@ -33,9 +29,9 @@ src/main/java/logistica/
 │   ├── Veiculo.java
 │   ├── Motorista.java
 │   ├── Rota.java
-│   ├── CalculadoraFrete.java (interface)
-│   ├── NotificadorEntrega.java (interface)
-│   └── RepositorioFrete.java (interface)
+│   ├── CalculadoraFrete.java      (interface)
+│   ├── NotificadorEntrega.java    (interface)
+│   └── RepositorioFrete.java      (interface)
 ├── service/
 │   ├── CalculadoraFretePorPeso.java
 │   ├── CalculadoraFretePorDistancia.java
@@ -48,128 +44,119 @@ src/main/java/logistica/
     └── RepositorioFreteEmMemoria.java
 ```
 
----
-
-## Aplicação dos Princípios SOLID
-
-### S — Single Responsibility Principle (SRP)
-
-Cada classe possui uma única responsabilidade bem delimitada:
-
-- **Entidades de domínio** (`Encomenda`, `Veiculo`, `Motorista`, `Rota`): guardam dados e validam suas próprias regras de integridade no construtor. Não calculam frete, não persistem, não notificam.
-- **Calculadoras** (`CalculadoraFretePorPeso`, `CalculadoraFretePorDistancia`, `CalculadoraFreteExpresso`): cada uma implementa uma estratégia de cálculo de frete específica.
-- **Notificadores** (`NotificadorWhatsApp`, `NotificadorEmail`): cada um implementa um canal de notificação.
-- **Serviços** (`ServicoCotacaoFrete`, `ServicoDespachoFrete`): coordenam o fluxo sem violar encapsulamento.
-
-**Exemplo:** a mudança na fórmula de cálculo por peso afeta apenas `CalculadoraFretePorPeso`, não altera as demais classes.
+- **domain:** as entidades e os contratos (interfaces) do sistema.
+- **service:** as regras de cálculo de frete e os dois serviços que conduzem o fluxo.
+- **infra:** as implementações "de fora", como os canais de notificação e o repositório em memória.
 
 ---
 
-### O — Open/Closed Principle (OCP)
+## Como apliquei cada princípio
 
-O código está aberto para extensão, mas fechado para modificação:
+### S — Responsabilidade única
 
-- `ServicoCotacaoFrete` não conhece qual calculadora implementa concretamente o cálculo. Recebe a abstração `CalculadoraFrete` via construtor e chama `calcular()`.
-- No `Main`, o mesmo serviço é instanciado com `CalculadoraFretePorPeso`, depois com `CalculadoraFretePorDistancia` e `CalculadoraFreteExpresso`, sem que o código do serviço seja alterado.
-- **Nenhum `switch`, `case` ou `instanceof` inspecionando tipos** para desviar fluxo de negócio.
+Cada classe faz uma coisa só:
 
-**Extensão:** criar uma nova estratégia (ex.: frete refrigerado) é implementar a interface `CalculadoraFrete` em uma nova classe, sem tocar nos serviços existentes.
+- As entidades (`Encomenda`, `Veiculo`, `Motorista`, `Rota`) guardam seus dados e validam suas próprias regras no construtor. Elas não calculam frete, não salvam nada e não notificam ninguém.
+- Cada calculadora cuida de um jeito de cobrar o frete.
+- Cada notificador cuida de um canal de aviso.
+- Os serviços só coordenam o fluxo.
 
----
+Se a fórmula do frete por peso mudar, só a `CalculadoraFretePorPeso` precisa ser mexida.
 
-### L — Liskov Substitution Principle (LSP)
+### O — Aberto para extensão, fechado para modificação
 
-Todas as implementações concretas cumprem integralmente o contrato das interfaces:
+O `ServicoCotacaoFrete` não sabe qual calculadora está usando. Ele recebe a interface `CalculadoraFrete` no construtor e chama `calcular()`. No `Main`, o mesmo serviço é montado com calculadoras diferentes (peso, distância e expresso) e o código dele não muda.
 
-- `CalculadoraFretePorPeso`, `CalculadoraFretePorDistancia` e `CalculadoraFreteExpresso` implementam `CalculadoraFrete.calcular()` de forma completa: recebem `Encomenda` e `Rota`, e sempre retornam um `BigDecimal` válido.
-- `NotificadorWhatsApp` e `NotificadorEmail` implementam `NotificadorEntrega.notificar()` corretamente, sem deixar a execução a cargo do chamador.
-- `RepositorioFreteEmMemoria` implementa `salvar()` e `buscarPorId()` de fato.
-- **Nenhum método foi sobrescrito com `throw new UnsupportedOperationException()`** ou corpo vazio.
+Não há `switch`, `case` nem `instanceof` para escolher regra de negócio. Para criar um novo tipo de frete, basta uma nova classe que implemente `CalculadoraFrete`.
 
-**Verificação:** nos cenários da `Main`, as implementações são trocadas (WhatsApp por Email, Peso por Distância) e o sistema continua funcionando — prova de conformidade com o contrato.
+### L — Substituição de Liskov
 
----
+Todas as implementações cumprem o contrato da interface de verdade:
 
-### I — Interface Segregation Principle (ISP)
+- As três calculadoras recebem uma `Encomenda` e uma `Rota` e sempre devolvem um `BigDecimal`.
+- `NotificadorWhatsApp` e `NotificadorEmail` realmente enviam (no caso, imprimem) a notificação.
+- `RepositorioFreteEmMemoria` implementa `salvar()` e `buscarPorId()` por completo.
 
-As interfaces são coesas e específicas:
+Nenhum método lança `UnsupportedOperationException` e nenhum fica vazio. Dá para trocar uma implementação pela outra e o sistema continua funcionando, que é o que o `Main` mostra.
+
+### I — Segregação de interfaces
+
+As interfaces são pequenas e cada uma tem um propósito:
 
 - `CalculadoraFrete`: 1 método (`calcular`)
 - `NotificadorEntrega`: 1 método (`notificar`)
-- `RepositorioFrete`: 2 métodos (`salvar`, `buscarPorId`)
+- `RepositorioFrete`: 2 métodos (`salvar` e `buscarPorId`)
 
-Nenhuma classe é forçada a depender de métodos que não utiliza. Contrasta com uma interface monolítica que combinasse cálculo, notificação e persistência.
+Assim, ninguém é obrigado a implementar algo que não usa. Uma interface única que misturasse cálculo, notificação e persistência obrigaria cada classe a carregar métodos que não são dela.
 
----
+### D — Inversão de dependência
 
-### D — Dependency Inversion Principle (DIP)
+Os dois serviços dependem só de interfaces, que chegam pelo construtor:
 
-Os serviços dependem exclusivamente de abstrações (interfaces), não de classes concretas:
+- `ServicoCotacaoFrete` recebe `CalculadoraFrete` e `RepositorioFrete`.
+- `ServicoDespachoFrete` recebe `NotificadorEntrega` e `RepositorioFrete`.
 
-- `ServicoCotacaoFrete` recebe `CalculadoraFrete` e `RepositorioFrete` via construtor.
-- `ServicoDespachoFrete` recebe `NotificadorEntrega` e `RepositorioFrete` via construtor.
-- **Nenhum `new` de repositório, calculadora ou notificador dentro dos serviços.**
-
-A injeção de dependência é manual: a `Main` monta o grafo de objetos e passa as dependências pelo construtor dos serviços.
-
-**Benefício:** trocar o repositório em memória por um banco de dados altera apenas a `Main`; os serviços permanecem intactos.
+Não existe `new` de classe concreta dentro dos serviços. Quem monta tudo é o `Main`, que faz a injeção de dependências na mão. Se um dia o repositório em memória for trocado por um banco de dados, só o `Main` precisa mudar.
 
 ---
 
-## Cenários de Teste
+## Os dois cenários do Main
 
-### Cenário 1: Frete por Peso + WhatsApp
-- Encomenda calculada por peso (R$ 4,50/kg + pedágio).
-- Notificação via WhatsApp.
+**Cenário 1 — frete por peso + WhatsApp**
+Cotação de uma encomenda de 12,5 kg (R$ 4,50 por kg mais o pedágio) e aviso de saída para entrega por WhatsApp.
 
-### Cenário 2: Frete por Distância e Expresso + E-mail
-- Mesma encomenda cotada por distância e por frete expresso.
-- Cliente escolhe expresso (demonstra a extensibilidade via OCP).
-- Notificação via E-mail.
+**Cenário 2 — frete por distância e expresso + e-mail**
+Uma encomenda de 300 kg de São Paulo ao Rio de Janeiro, cotada pelos dois tipos de frete. O cliente escolhe o expresso e é avisado por e-mail.
 
 ---
 
-## Validações e Regras de Integridade
+## Validações nas entidades
 
-As entidades validam no construtor:
-- Peso negativo → `IllegalArgumentException`
-- Capacidade do veículo negativa → `IllegalArgumentException`
-- Distância negativa → `IllegalArgumentException`
+Os construtores lançam `IllegalArgumentException` quando recebem dados que não fazem sentido:
 
-Os serviços verificam dados antes de operar (ex.: se a encomenda existe no repositório antes de despachar).
+- `Encomenda`: peso, altura, largura e comprimento precisam ser maiores que zero, e o valor declarado não pode ser negativo.
+- `Veiculo`: a capacidade de carga precisa ser maior que zero.
+- `Rota`: a distância precisa ser maior que zero e o pedágio não pode ser negativo.
+- `Motorista`: precisa ter um veículo associado.
+
+Além disso, o `ServicoDespachoFrete` confere se a encomenda existe no repositório e se ela cabe no veículo do motorista antes de despachar.
 
 ---
 
-## Conformidade com o Enunciado
+## Conferindo com o enunciado
 
-| Requisito | Status |
+| Requisito | Situação |
 |---|---|
-| Mínimo 4 classes de domínio | ✓ Encomenda, Veiculo, Motorista, Rota |
-| Mínimo 3 interfaces/abstrações | ✓ CalculadoraFrete, NotificadorEntrega, RepositorioFrete |
-| Mínimo 2 serviços de orquestração | ✓ ServicoCotacaoFrete, ServicoDespachoFrete |
-| Nenhum switch/case/instanceof para regra de negócio | ✓ Sem ocorrências |
-| Nenhum UnsupportedOperationException ou método vazio | ✓ Sem ocorrências |
-| Nenhum new de dependência nos serviços | ✓ Injeção manual via construtor |
-| Main com grafo manual e 2 cenários | ✓ Dois cenários distintos executados |
-| Organização src/main/java + .gitignore | ✓ Padrão Maven, target/, build/, .idea/, *.class, *.iml ignorados |
+| Pelo menos 4 classes de domínio | `Encomenda`, `Veiculo`, `Motorista`, `Rota` |
+| Pelo menos 3 interfaces | `CalculadoraFrete`, `NotificadorEntrega`, `RepositorioFrete` |
+| Pelo menos 2 serviços de orquestração | `ServicoCotacaoFrete`, `ServicoDespachoFrete` |
+| Sem `switch`/`instanceof` nas regras de negócio | Nenhuma ocorrência |
+| Sem `UnsupportedOperationException` nem método vazio | Nenhuma ocorrência |
+| Sem `new` de dependência nos serviços | Tudo injetado pelo construtor |
+| `Main` com injeção manual e 2 cenários | Dois cenários executados |
+| `src/main/java` e `.gitignore` | `target/`, `build/`, `.idea/`, `*.class` e `*.iml` ignorados |
 
 ---
 
-## Teste de Extensão
+## Exemplo de extensão
 
-A extensão de novo comportamento é trivial e não exige alteração de código existente:
+Para adicionar, por exemplo, um frete refrigerado, basta criar uma classe nova:
 
-**Exemplo: adicionar frete refrigerado**
 ```java
 public class CalculadoraFreteRefrigerado implements CalculadoraFrete {
     @Override
     public BigDecimal calcular(Encomenda encomenda, Rota rota) {
-        // implementação da estratégia
-        return resultado;
+        BigDecimal peso = BigDecimal.valueOf(encomenda.getPeso());
+        BigDecimal pedagio = BigDecimal.valueOf(rota.getValorPedagio());
+        return peso.multiply(BigDecimal.valueOf(6.00)).add(pedagio);
     }
 }
 ```
 
-Na `Main`: `new ServicoCotacaoFrete(new CalculadoraFreteRefrigerado(), repositorio);`
+E usá-la no `Main`:
 
-Nenhuma classe existente é alterada. Isso demonstra o OCP.
+```java
+new ServicoCotacaoFrete(new CalculadoraFreteRefrigerado(), repositorio);
+```
+
+Nenhuma classe existente precisa ser alterada.
