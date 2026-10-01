@@ -1,0 +1,14 @@
+# Pasta gerada pelo Maven ao compilar
+target/
+
+# Pasta gerada por outras ferramentas de build (ex.: Gradle)
+build/
+
+# Configuracoes do IntelliJ IDEA
+.idea/
+
+# Arquivos compilados do Java
+*.class
+
+# Arquivo de modulo do IntelliJ IDEA
+*.iml
